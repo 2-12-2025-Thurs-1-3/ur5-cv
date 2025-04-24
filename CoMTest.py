@@ -11,26 +11,19 @@ def main():
     while True:
         #tk.update()
 
-        # Read from the camera frame by frame
+        # Read from the camera frame by frame and crop
         ret, cv_image1 = cap.read()
         cv_image = cv_image1[0:440,138:540]
         hsv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
 
         # get threshold values
-        # lower_bound_HSV = np.array([l_h.get(), l_s.get(), l_v.get()])
-        # upper_bound_HSV = np.array([u_h.get(), u_s.get(), u_v.get()])
         lower_bound_yellow = np.array([23,41,105])
         upper_bound_yellow = np.array([34,255,255])
         mask_HSV = cv2.inRange(hsv_image, lower_bound_yellow, upper_bound_yellow)
         kernel = np.ones((7,7),np.uint8)
 
-        num_iterations = 5
         ################ Opening ####################
-        # erode blobs
         test = mask_HSV.copy()
-        #erosion = cv2.erode(test,kernel, iterations = num_iterations)
-        #openIm = cv2.dilate(erosion,kernel, iterations=num_iterations)
-        #test=openIm.copy()
         openIm = cv2.morphologyEx(test, cv2.MORPH_OPEN, kernel)
 
         #ret, thresh = cv2.threshold(test, 150, 255, cv2.THRESH_BINARY)
