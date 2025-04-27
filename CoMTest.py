@@ -6,6 +6,24 @@ from tkinter import *
 import math
 
 COLORS = [(0,255,120),(255,120,120),(0,69,255),(255,255,255)]
+POINTS = [(.69154,-.600138),(.67307,-.135855),(.1763488,-.1238),(.13237,-.63746)]
+MYPOINTS = [(33,403),(350,400),(370,67),(25,25)]
+src = np.array(MYPOINTS)
+dst = np.array(POINTS)
+
+x, y, u, v = src[:,0], src[:,1], dst[:,0], dst[:,1]
+A = np.zeros((9,9))
+j = 0
+for i in range(4):
+    A[j,:] = np.array([-x[i], -y[i], -1, 0, 0, 0, x[i]*u[i], y[i]*u[i], u[i]])
+    A[j+1,:] = np.array([0, 0, 0, -x[i], -y[i], -1, x[i]*v[i], y[i]*v[i], v[i]])
+    j += 2
+A[8, 8] = 1   # assuming h_9 = 1
+b = [0]*8 + [1]
+
+H = np.reshape(np.linalg.solve(A, b), (3,3))
+print(H)
+
 
 def find_contours(image,original,colors):
     contoursss, _ = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
@@ -22,6 +40,9 @@ def find_contours(image,original,colors):
             cv2.circle(original, (cX, cY), 7, (255, 255, 255), -1)
             cv2.putText(original, "center", (cX - 20, cY - 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+            print("Pos: ",(cX,cY))
+            new = [H[0,0]*cX+H[0,1]*cY+H[0,2],H[1,0]*cX+H[1,1]*cY+H[1,2]]
+            print("New Pos: ",new)
 
 def main():
     # Open up the webcam
@@ -31,21 +52,26 @@ def main():
         # Read from the camera frame by frame and crop
         ret, cv_image1 = cap.read()
         cv_image = cv_image1[0:440,138:540]
+        #print(len(cv_image))
         hsv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
 
         # threshold values
         # yellow 
         lower_bound_HSV_yellow = np.array([23, 41, 105]) 
         upper_bound_HSV_yellow = np.array([34, 255, 255])
+        lower_bound_HSV_yellow = np.array([21, 39, 103]) 
+        upper_bound_HSV_yellow = np.array([36, 255, 255])
         # blue 
         lower_bound_HSV_blue = np.array([71, 135, 68])
         upper_bound_HSV_blue = np.array([105, 255, 255])
         # orange 
         lower_bound_HSV_orange = np.array([15, 100, 255])
         upper_bound_HSV_orange = np.array([23, 255, 255])
+        lower_bound_HSV_orange = np.array([13, 90, 200])
+        upper_bound_HSV_orange = np.array([25, 255, 255])
         # clear
-        lower_bound_HSV_clear = np.array([0, 0, 100])
-        upper_bound_HSV_clear = np.array([180, 60, 255])
+        lower_bound_HSV_clear = np.array([255, 255, 255])
+        upper_bound_HSV_clear = np.array([255, 255, 255])
         
         # create four color masks
         mask_HSV_yellow = cv2.inRange(hsv_image, lower_bound_HSV_yellow, upper_bound_HSV_yellow)
@@ -66,6 +92,11 @@ def main():
         for img in range(len(images)):
             find_contours(images[img],cv_image,COLORS[img])
 
+        #cv2.circle(cv_image, (33,403), 7, (255, 255, 255), -1)
+        #cv2.circle(cv_image, (350,400), 7, (255, 255, 255), -1)
+        #cv2.circle(cv_image, (370,67), 7, (255, 255, 255), -1)
+        #cv2.circle(cv_image, (25,25), 7, (255, 255, 255), -1)
+        
         ## display image
         cv2.imshow("Original",cv_image)
         cv2.imshow("Opening - Yellow", opening_yellow)
