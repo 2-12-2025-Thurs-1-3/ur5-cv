@@ -5,6 +5,7 @@ import time
 from tkinter import *
 import math
 
+colorID = [0,0,0,0]
 COLORS = [(0,255,120),(255,120,120),(0,69,255),(255,255,255)]
 POINTS = [(.69154,-.600138),(.67307,-.135855),(.1763488,-.1238),(.13237,-.63746)]
 MYPOINTS = [(33,403),(350,400),(370,67),(25,25)]
@@ -25,12 +26,13 @@ H = np.reshape(np.linalg.solve(A, b), (3,3))
 print(H)
 
 
-def find_contours(image,original,colors):
+def find_contours(i,image,original,colors):
     contoursss, _ = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     min_area = 2500
     contourss = [cnt for cnt in contoursss if (cv2.contourArea(cnt) > min_area and cv2.contourArea(cnt) < 9000)]
     cv2.drawContours(original, contourss, -1, colors,3)
     if (len(contourss)>0):
+        colorID[i] = 1
         for c in contourss:
             # Compute the center of the contour
             M = cv2.moments(c)
@@ -70,14 +72,19 @@ def main():
         lower_bound_HSV_orange = np.array([13, 90, 200])
         upper_bound_HSV_orange = np.array([25, 255, 255])
         # clear
-        lower_bound_HSV_clear = np.array([255, 255, 255])
-        upper_bound_HSV_clear = np.array([255, 255, 255])
+        # lower_bound_HSV_clear = np.array([255, 255, 255])
+        # upper_bound_HSV_clear = np.array([255, 255, 255])
+        ret, frame = cap.read()
+        cannyIm = cv2.Canny(cv_image, 50, 150, apertureSize = 3)
+        cv2.imshow("Canny_Image", cannyIm)
+        cv2.waitKey(3)
+        time.sleep(0.02)
         
         # create four color masks
         mask_HSV_yellow = cv2.inRange(hsv_image, lower_bound_HSV_yellow, upper_bound_HSV_yellow)
         mask_HSV_blue = cv2.inRange(hsv_image, lower_bound_HSV_blue, upper_bound_HSV_blue)
         mask_HSV_orange = cv2.inRange(hsv_image, lower_bound_HSV_orange, upper_bound_HSV_orange)
-        mask_HSV_clear = cv2.inRange(hsv_image, lower_bound_HSV_clear, upper_bound_HSV_clear)
+        # mask_HSV_clear = cv2.inRange(hsv_image, lower_bound_HSV_clear, upper_bound_HSV_clear)
         
         kernel = np.ones((7,7),np.uint8)
         num_iterations = 3
@@ -86,11 +93,21 @@ def main():
         opening_yellow = cv2.morphologyEx(mask_HSV_yellow, cv2.MORPH_OPEN, kernel, iterations = num_iterations)
         opening_blue = cv2.morphologyEx(mask_HSV_blue, cv2.MORPH_OPEN, kernel, iterations = num_iterations)
         opening_orange = cv2.morphologyEx(mask_HSV_orange, cv2.MORPH_OPEN, kernel, iterations = num_iterations)
-        opening_clear = cv2.morphologyEx(mask_HSV_clear, cv2.MORPH_OPEN, kernel, iterations = num_iterations)
+        # opening_clear = cv2.morphologyEx(mask_HSV_clear, cv2.MORPH_OPEN, kernel, iterations = num_iterations)
+        opening_clear = cv2.morphologyEx(cannyIm, cv2.MORPH_CLOSE, kernel, iterations = num_iterations)
 
         images = [opening_yellow,opening_blue,opening_orange,opening_clear]
+        colorID.clear()
         for img in range(len(images)):
-            find_contours(images[img],cv_image,COLORS[img])
+            find_contours(img,images[img],cv_image,COLORS[img])
+        if colorID[0]==1:
+            print("yellow")
+        elif colorID[1]==1:
+            print("blue")
+        elif colorID[2]==1:
+            print("orange")
+        elif colorID[3]==1:
+            print("clear")
 
         #cv2.circle(cv_image, (33,403), 7, (255, 255, 255), -1)
         #cv2.circle(cv_image, (350,400), 7, (255, 255, 255), -1)
