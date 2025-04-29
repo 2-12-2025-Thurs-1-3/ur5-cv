@@ -25,6 +25,18 @@ b = [0]*8 + [1]
 H = np.reshape(np.linalg.solve(A, b), (3,3))
 print(H)
 
+class Bottle:
+    def __init__(self,clr: list, pos: list):
+        self.color = clr
+        self.pos = [pos]
+        self.time = [time.time_ns()]
+        self.interpolate = 0
+    def update_pos(self,new_pos: list):
+        self.pos.append(new_pos)
+        self.time.append(time.time_ns())
+    def find_velocity(self):
+        self.velX = (self.pos[-1][0]-self.pos[0][0])/(self.time[-1]-self.time[0])
+        self.velY = (self.pos[-1][1]-self.pos[0][1])/(self.time[-1]-self.time[0])
 
 def find_contours(i,image,original,colors):
     contoursss, _ = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
