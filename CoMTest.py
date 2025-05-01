@@ -55,14 +55,14 @@ class Bottle:
         self.velX = (self.pos[-1][0]-self.pos[0][0])/(self.time[-1]-self.time[0])
         self.velY = (self.pos[-1][1]-self.pos[0][1])/(self.time[-1]-self.time[0])
     def future_pos(self):
-        dT = .01
+        dT = .05
         curr_time = time.time()
         for i in range(100):
             self.future[i] = (self.pos[-1][0]+self.velX*dT*i,self.pos[-1][1]+self.velY*dT*i,curr_time+dT*i)
             
 
 
-def find_contours(i,image,original,colors):
+def find_contours(i,image,original,colors,camera):
     contoursss, _ = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     min_area = 2500
     contourss = [cnt for cnt in contoursss if (cv2.contourArea(cnt) > min_area and cv2.contourArea(cnt) < 9000)]
@@ -82,18 +82,17 @@ def find_contours(i,image,original,colors):
             new = (H[0,0]*cX+H[0,1]*cY+H[0,2],H[1,0]*cX+H[1,1]*cY+H[1,2])
             if len(contourss)==1 and cY<330:
                 track = Bottle(i,(cX,cY))
-                track_one(track)
+                track_one(track,camera)
             #print("New Pos: ",new)
 
-def track_one(bottle):
+def track_one(bottle,camera):
     cv2.destroyAllWindows()
-    cap = cv2.VideoCapture(CAMERAID)
     kernel = np.ones((7,7),np.uint8)
     num_iterations = 3
     bru=0
     while True:
         bru = bru+1
-        ret, cv_image1 = cap.read()
+        ret, cv_image1 = camera.read()
         cv_image = cv_image1[0:440,138:540]
         hsv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
         mask_HSV = cv2.inRange(hsv_image, thresholds[bottle.color][0], thresholds[bottle.color][1])
@@ -119,20 +118,10 @@ def track_one(bottle):
         bottle.update_pos((cX,cY))
         bottle.find_velocity()
         bottle.future_pos()
-        #for i in range(100):
-        #    print(bottle.future[i])
-        #    if bottle.future[i][0]>0 and bottle.future[i][1]>0:
-        #        cv2.circle(cv_image, (int(bottle.future[i][0]),int(bottle.future[i][1])), 7, (255, 255, 255), -1)
-        #print(len(bottle.pos))
+        
         for i in range(1, len(bottle.future)):
-            #print(bottle.future[1])
-            #print('here')
-            #if bottle.future[i][0]>0 and bottle.future[i][1]>0:
-            #    if bottle.future[i][0]<440 and bottle.future[i][1]<402:
-            #print(bottle.future[i][0:2])
             pt1 = tuple(map(int, bottle.future[i - 1][0:2]))
             pt2 = tuple(map(int, bottle.future[i][0:2]))
-            #print('here two')
             cv2.line(cv_image, pt1, pt2, COLORS[bottle.color], 2)
         
         cv2.imshow("Original",cv_image)
@@ -155,6 +144,7 @@ def main():
     while True:
         # Read from the camera frame by frame and crop
         ret, cv_image1 = cap.read()
+        print(cv_image1)
         cv_image = cv_image1[0:440,138:540]
         #print(len(cv_image))
         hsv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
@@ -188,7 +178,7 @@ def main():
         images = [opening_yellow,opening_blue,opening_orange,opening_clear]
         colorID = [0,0,0,0]
         for img in range(len(images)):
-            find_contours(img,images[img],cv_image,COLORS[img])
+            find_contours(img,images[img],cv_image,COLORS[img],cap)
         if colorID[0]==1:
             print("yellow")
         elif colorID[1]==1:
@@ -209,7 +199,6 @@ def main():
         cv2.imshow("Opening - Blue", opening_blue)
         cv2.imshow("Opening - Orange", opening_orange)
         cv2.imshow("Opening - Clear", opening_clear)
-        #print(cv_image.shape)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             cv2.destroyAllWindows()
             break
