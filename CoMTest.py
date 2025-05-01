@@ -1,4 +1,4 @@
-#(480,640,3)
+#(480,640,3) -0.3
 import numpy as np
 import cv2  # OpenCV module
 import time
@@ -10,6 +10,9 @@ colorID = [0,0,0,0]
 COLORS = [(0,255,120),(255,120,120),(0,69,255),(255,255,255)]
 POINTS = [(.69154,-.600138),(.67307,-.135855),(.1763488,-.1238),(.13237,-.63746)]
 MYPOINTS = [(33,403),(350,400),(370,67),(25,25)]
+TOPCUTOFF = 50
+BOTTCUTOFF = 300
+DT=.05
 src = np.array(MYPOINTS)
 dst = np.array(POINTS)
 #Threshold Values
@@ -56,12 +59,18 @@ class Bottle:
         self.velX = (self.pos[-1][0]-self.pos[0][0])/(self.time[-1]-self.time[0])
         self.velY = (self.pos[-1][1]-self.pos[0][1])/(self.time[-1]-self.time[0])
     def future_pos(self):
-        dT = .05
+        dT = DT
         curr_time = time.time()
         for i in range(100):
             self.future[i] = (self.pos[-1][0]+self.velX*dT*i,self.pos[-1][1]+self.velY*dT*i,curr_time+dT*i)
     def upd_robot_pos(self,pos):
         self.robot_pos.append(pos)
+    def send_data(self):
+        rvelX = (self.robot_pos[-1][0]-self.robot_pos[0][0])/(self.time[-1]-self.time[0])
+        rvelY = (self.robot_pos[-1][1]-self.robot_pos[0][1])/(self.time[-1]-self.time[0])
+        distance = abs(self.robot_pos[-1][0]+.3)
+        self.exp_time = distance/(abs(np.sqrt(pow(rvelY,2)+pow(rvelX,2))))
+        print(self.exp_time,self.color)
             
 
 
@@ -83,7 +92,7 @@ def find_contours(i,image,original,colors,camera):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
             #print("Pos: ",(cX,cY))
             new = (H[0,0]*cX+H[0,1]*cY+H[0,2],H[1,0]*cX+H[1,1]*cY+H[1,2])
-            if len(contourss)==1 and cY<330 and cY>20:
+            if len(contourss)==1 and cY<BOTTCUTOFF and cY>TOPCUTOFF+50:
                 track = Bottle(i,(cX,cY))
                 track.upd_robot_pos(new)
                 track_one(track,camera)
@@ -119,13 +128,16 @@ def track_one(bottle,camera):
             cv2.putText(cv_image, "center", (cX - 20, cY - 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
             new = (H[0,0]*cX+H[0,1]*cY+H[0,2],H[1,0]*cX+H[1,1]*cY+H[1,2])
+            bottle.update_pos((cX,cY))
             bottle.upd_robot_pos(new)
-            if cY<20:
+            if cY<TOPCUTOFF:
+                bottle.send_data()
+                break
+            elif cY>BOTTCUTOFF:
                 break
         else:
             break
 
-        bottle.update_pos((cX,cY))
         bottle.find_velocity()
         bottle.future_pos()
         
