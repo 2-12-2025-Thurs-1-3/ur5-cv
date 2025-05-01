@@ -154,7 +154,7 @@ def main():
     while True:
         # Read from the camera frame by frame and crop
         ret, cv_image1 = cap.read()
-        print(cv_image1)
+        #print(cv_image1)
         cv_image = cv_image1[0:440,138:540]
         #print(len(cv_image))
         hsv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
