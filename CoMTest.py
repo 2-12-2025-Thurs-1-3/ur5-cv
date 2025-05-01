@@ -48,6 +48,7 @@ class Bottle:
         self.velX = 0
         self.velY = 0
         self.future = [0 for _ in range(100)]
+        self.robot_pos=[]
     def update_pos(self,new_pos: list):
         self.pos.append(new_pos)
         self.time.append(time.time())
@@ -59,6 +60,8 @@ class Bottle:
         curr_time = time.time()
         for i in range(100):
             self.future[i] = (self.pos[-1][0]+self.velX*dT*i,self.pos[-1][1]+self.velY*dT*i,curr_time+dT*i)
+    def upd_robot_pos(self,pos):
+        self.robot_pos.append(pos)
             
 
 
@@ -80,8 +83,9 @@ def find_contours(i,image,original,colors,camera):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
             #print("Pos: ",(cX,cY))
             new = (H[0,0]*cX+H[0,1]*cY+H[0,2],H[1,0]*cX+H[1,1]*cY+H[1,2])
-            if len(contourss)==1 and cY<330:
+            if len(contourss)==1 and cY<330 and cY>20:
                 track = Bottle(i,(cX,cY))
+                track.upd_robot_pos(new)
                 track_one(track,camera)
             #print("New Pos: ",new)
 
@@ -95,8 +99,12 @@ def track_one(bottle,camera):
         ret, cv_image1 = camera.read()
         cv_image = cv_image1[0:440,138:540]
         hsv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
-        mask_HSV = cv2.inRange(hsv_image, thresholds[bottle.color][0], thresholds[bottle.color][1])
-        opening = cv2.morphologyEx(mask_HSV, cv2.MORPH_OPEN, kernel, iterations = num_iterations)
+        if bottle.color!=3:
+            mask_HSV = cv2.inRange(hsv_image, thresholds[bottle.color][0], thresholds[bottle.color][1])
+            opening = cv2.morphologyEx(mask_HSV, cv2.MORPH_OPEN, kernel, iterations = num_iterations)
+        else:
+            cannyIm = cv2.Canny(cv_image, 50, 150, apertureSize = 3)
+            opening = cv2.morphologyEx(cannyIm, cv2.MORPH_CLOSE, kernel, iterations = num_iterations)
         contoursss, _ = cv2.findContours(opening, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
         min_area = 2500
         contoursss = [cnt for cnt in contoursss if (cv2.contourArea(cnt) > min_area and cv2.contourArea(cnt) < 9000)]
@@ -111,7 +119,9 @@ def track_one(bottle,camera):
             cv2.putText(cv_image, "center", (cX - 20, cY - 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
             new = (H[0,0]*cX+H[0,1]*cY+H[0,2],H[1,0]*cX+H[1,1]*cY+H[1,2])
-            #print((bottle.velX,bottle.velY))
+            bottle.upd_robot_pos(new)
+            if cY<20:
+                break
         else:
             break
 
