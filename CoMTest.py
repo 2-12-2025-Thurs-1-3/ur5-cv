@@ -93,7 +93,7 @@ def find_contours(i,image,original,colors):
             print("Pos: ", (cX, cY))
             new = [H[0, 0]*cX + H[0, 1]*cY + H[0, 2], H[1, 0]*cX + H[1, 1]*cY + H[1, 2]]
             print("New Pos: ", new)
-            print(f"Velocity (px/ns): ({vx:.2e}, {vy:.2e})")
+            # print(f"Velocity (px/ns): ({vx:.2e}, {vy:.2e})")
 
 
 # Draws points where a bottle has been
