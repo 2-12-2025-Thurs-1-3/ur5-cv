@@ -13,7 +13,7 @@ MYPOINTS = [(33,403),(350,400),(370,67),(25,25)]
 src = np.array(MYPOINTS)
 dst = np.array(POINTS)
 
-cameraPort = 8 ## Which port you're working with. Set!!!
+cameraPort = 0 ## Which port you're working with. Set!!!
 
 
 x, y, u, v = src[:,0], src[:,1], dst[:,0], dst[:,1]
@@ -30,12 +30,14 @@ H = np.reshape(np.linalg.solve(A, b), (3,3))
 print(H)
 
 class Bottle:
-    def __init__(self,clr: list, pos: list, status: bool):
+    def __init__(self,clr: list, pos: list):
         self.color = clr
         self.pos = [pos]
         self.time = [time.time()]
         self.interpolate = 0
         self.status = False
+        self.XPoint = 5000 # This is the set point where the UR5 should pick up every bottels (distance from the end), i threw in an arbitrary value lol
+        self.pickY = 0 ## This is the point at which the UR5 should be in front of it to grab the bottle
     def update_pos(self,new_pos: list):
         self.pos.append(new_pos)
         self.time.append(time.time())
@@ -43,8 +45,13 @@ class Bottle:
         self.velX = (self.pos[-1][0]-self.pos[0][0])/(self.time[-1]-self.time[0])
         self.velY = (self.pos[-1][1]-self.pos[0][1])/(self.time[-1]-self.time[0])
         return self.velX, self.velY
-    def update_status(self)
-        self.status = True
+    # def pick_position():
+    #     ## I'm lowkey getting these from nowhere lol, we might have to convert from pixels and shit
+    #     time_range = 3000 # 3 seconds
+    #     time_at_pickup = (XPoint - pos(0)) / velX
+    #     y_at_pickup = time_at_pickup
+    # # def update_status(self):
+    # #     self.status = True
 
 def find_contours(i,image,original,colors):
     contoursss, _ = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
@@ -86,10 +93,7 @@ def find_contours(i,image,original,colors):
             print("Pos: ", (cX, cY))
             new = [H[0, 0]*cX + H[0, 1]*cY + H[0, 2], H[1, 0]*cX + H[1, 1]*cY + H[1, 2]]
             print("New Pos: ", new)
-
-            if len(bottles[i].pos) >= 2:
-                vx, vy = bottles[i].find_velocity()
-                print(f"Velocity (px/ns): ({vx:.2e}, {vy:.2e})")
+            print(f"Velocity (px/ns): ({vx:.2e}, {vy:.2e})")
 
 
 # Draws points where a bottle has been
@@ -100,6 +104,7 @@ def draw_bottle_trajectory(image, bottle: Bottle):
         pt1 = tuple(map(int, bottle.pos[i - 1]))
         pt2 = tuple(map(int, bottle.pos[i]))
         cv2.line(image, pt1, pt2, bottle.color, 2)
+
 
 
 
